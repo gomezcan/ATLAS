@@ -26,7 +26,7 @@ DeDuplicates_Q20= false;         ## Drop the duplicated Q20 reads
 if ${geno_index}; then
 	path_genome='path/file/reference/genome';	## Input the reference genome path file
 else
-	index_genome='base_name/reference/genome';	## Input the base name of reference genome index
+	index_genome='Index_TAIR10_Hisat2';	## Input the base name of reference genome index
 fi
 
 #if ${geno_index}; then
