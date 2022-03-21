@@ -29,6 +29,10 @@ else
 	index_genome='base_name/reference/genome';	## Input the base name of reference genome index
 fi
 
+#if ${geno_index}; then
+#		indexing_genome ${path_genome};
+#fi;
+
 ###################################### SCRIPT #########################################
 
 ############# Single functions ################
@@ -53,11 +57,9 @@ read_mapping_single(){
 	file=$1;
         file_out=${file//Clean./};
 	file_out=${file_out//fastq.gz/.sam};
-        hisat2 -p 50 --no-unal --no-mixed --no-discordant -x ${index_genome} -U ${file} -S $file_out;
+        hisat2 -p 50 --max-intronlen 20000 --no-unal -x ${index_genome} -U ${file} -S $file_out;
 
         samtools view -@ 50 -h -S -b ${file_out} | samtools sort -@ 50 -o ${file_out//.sam/.bam};
-
-	return ${file_out//.sam/.bam};
 }
 
 ######################################################
@@ -87,12 +89,11 @@ read_mapping_paired() {
         file1= ${file};
         file2= ${file//1.fastq.gz/2.fastq.gz};
         file_out= ${file//Clean./};
-        file_out= ${file_out//1.fastq.gz/.sam};
-        hisat2 -p 50 --no-unal --no-mixed --no-discordant -x ${index_genome} -1 ${file1} -2 ${file2} -S ${file_out};
+        file_out= ${file_out//_1.fastq.gz/.sam};
+        hisat2 -p 50 --max-intronlen 20000 --no-unal --no-discordant -x ${index_genome} -1 ${file1} -2 ${file2} -S ${file_out};
 
         samtools view -@ 50 -h -S -b ${file_out} | samtools sort -@ 50 -o ${file_out//.sam/.bam};
 
-	return ${file_out//.sam/.bam}
 }
 
 ################################################################
@@ -106,10 +107,6 @@ single_module() {
 	fi;
 	
 	cleaning_single ${sample}.fastq.gz;
-
-	if ${geno_index}; then
-		indexing_genome ${path_genome};
-	fi;
 
 	read_mapping_single Clean.${sample}.fastq.gz;
 
@@ -125,10 +122,6 @@ paired_module() {
 	fi;
 
 	cleaning_paired ${sample}_1.fastq.gz;
-
-	if ${geno_index}; then
-		indexing_genome ${path_genome};
-	fi;
 
 	read_mapping_pared Clean.${sample}_1.fastq.gz;
 }
