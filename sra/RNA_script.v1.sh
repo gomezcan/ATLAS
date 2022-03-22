@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ########## BATCH Lines for Resource Request ##########
-#SBATCH --time=02:00:00		# limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --time=04:00:00		# limit of wall clock time - how long the job will run (same as -t)
 #SBATCH --nodes=1		# number of different nodes - could be an exact number or a range of nodes (same as -N)
 #SBATCH --ntasks=1		# number of tasks - how many tasks (nodes) that you require (same as -n)
 #SBATCH --cpus-per-task=50	# number of CPUs (or cores) per task (same as -c)
@@ -14,7 +14,7 @@
 #module purge
 #module load GCC/8.2.0
 #module load parallel-fastq-dump/0.6.5-Python-3.7.2
-module load Trimmomatic/0.39-Java-11
+#module load Trimmomatic/0.39-Java-11
 #module load GCC/4.7.2
 #module load hisat2/2.1.0
 #module load GCC/9.3.0
@@ -57,8 +57,7 @@ indexing_genome(){
 ############# Single functions ################
 
 donwload_single() {
-	module load GCC/8.2.0
-	module load parallel-fastq-dump/0.6.5-Python-3.7.2
+	
 	line=$1
 	parallel-fastq-dump -s ${line} -t ${threads} --gzip -O /mnt/home/gomezcan/Projects/Arabidopsis_Atlas/SecondPhase/;
 }
@@ -70,17 +69,14 @@ cleaning_single(){
 }
 
 read_mapping_single(){
-module load GCC/4.7.2
-module load hisat2/2.1.0
 
 	file=$1;
         file_out=${file//Clean./};
 	file_out=${file_out//.fastq.gz/.sam};
         hisat2 -p ${threads} --no-unal --max-intronlen 20000 -x ${index_genome} -U ${file} -S $file_out;
 
-module load GCC/9.3.0
-module load SAMtools/1.11
 	samtools view -@ $((threads-10)) -h -S -b ${file_out} | samtools sort -@ $((threads-10)) -o ${file_out//.sam/.bam};
+	rm ${file_out};
 }
 
 ######################################################
@@ -88,8 +84,6 @@ module load SAMtools/1.11
 ############### Paired functions #####################
 
 donwload_paired() {
-        module load GCC/8.2.0
-        module load parallel-fastq-dump/0.6.5-Python-3.7.2
 	line=$1;
 	parallel-fastq-dump -s ${line} -t ${threads} --gzip --split-files -O /mnt/home/gomezcan/Projects/Arabidopsis_Atlas/SecondPhase/;
 }
@@ -106,8 +100,6 @@ cleaning_paired() {
 }
 
 read_mapping_paired() {
-module load GCC/4.7.2
-module load hisat2/2.1.0
 	file=$1;
 
         file1=${file};
@@ -116,12 +108,9 @@ module load hisat2/2.1.0
         file_out=${file_out//_1.fastq.gz/.sam};
         hisat2 -p ${threads} --no-unal --max-intronlen 20000 --no-discordant -x ${index_genome} -1 ${file1} -2 ${file2} -S ${file_out};
 
-module load GCC/9.3.0
-module load SAMtools/1.11
 
         samtools view -@ $((threads-10)) -h -S -b ${file_out} | samtools sort -@ $((threads-10)) -o ${file_out//.sam/.bam};
-
-	return ${file_out//.sam/.bam}
+	rm ${file_out};
 }
 
 ################################################################
@@ -130,14 +119,16 @@ module load SAMtools/1.11
 
 single_module() {
 	sample=$1;
-
+	module purge
+	ml GCC/8.2.0 parallel-fastq-dump/0.6.5-Python-3.7.2
 	if $donwloading; then
 		echo 'donwloading the sample';
 		donwload_single ${sample} ;
 	else
 		echo 'dont donwloading';
 	fi
-
+	module purge
+	ml GCC/10.2.0 Trimmomatic/0.39-Java-11 hisat2/2.1.0 SAMtools/1.11
 	cleaning_single ${sample}.fastq.gz;
 
 	read_mapping_single Clean.${sample}.fastq.gz;
@@ -149,6 +140,8 @@ single_module() {
 
 paired_module() {
 	sample=$1;
+        module purge
+        ml GCC/8.2.0 parallel-fastq-dump/0.6.5-Python-3.7.2
 	if ${donwloading}; then
 		echo 'Paired downloading the sample';
 		donwload_paired ${sample};
@@ -156,9 +149,11 @@ paired_module() {
 		echo 'dont downloading';
 	fi
 
+        module purge
+        ml GCC/10.2.0 Trimmomatic/0.39-Java-11 hisat2/2.1.0 SAMtools/1.11
 	cleaning_paired ${sample}_1.fastq.gz;
 
-	read_mapping_pared Clean.${sample}_1.fastq.gz;
+	read_mapping_paired Clean.${sample}_1.fastq.gz;
 }
 
 ############################################################################
@@ -195,57 +190,57 @@ indexing_genome;
 while read -r -a line; do
 
 	file=${line[0]};
-	if [ ${line[1]}=="Single" ]  ## Ask if the sample is single
+	if [[ ${line[1]} == "Single" ]]  ## Ask if the sample is single
 	then
 		echo 'executing single'
 		single_module ${file}; #Execute the single script
 
 		###### The additional processes ###########
-#		if ${Q20}; then
-#			Q20_filter ${file}.bam;
-#		fi
-#
-	#	if ${DeDuplicates_Q20}; then
-	#		if ${Q20}; then 
-	#			Dedu_Q20 Q20.${file}.bam;
-	#		else
-	#			echo 'The Q20 filtered data must be generated first';
-	#		#fi
-	#	fi
-#
-#		if ${Drop_Duplicates}; then
-#			DeDup ${file}.bam;
-#		fi
-#
-#		if ${Unique_mapping}; then
-#			unique_mapped ${file}.bam;
-#		fi
-#
-	elif [ ${line[1]}=="Paired" ]   ## Ask if the sample is paired
+		if ${Q20}; then
+			Q20_filter ${file}.bam;
+		fi
+
+		if ${DeDuplicates_Q20}; then
+			if ${Q20}; then 
+				Dedu_Q20 Q20.${file}.bam;
+			else
+				echo 'The Q20 filtered data must be generated first';
+			fi
+		fi
+
+		if ${Drop_Duplicates}; then
+		DeDup ${file}.bam;
+		fi
+
+		if ${Unique_mapping}; then
+			unique_mapped ${file}.bam;
+		fi
+
+	elif [[ ${line[1]} == "Paired" ]]   ## Ask if the sample is paired
 	then
 		echo 'executing paired'
 		paired_module ${file}; #Execute the paired script
-#		
+		
 		##### The additonal processes #########
-#                if ${Q20}; then
- #                       Q20_filter ${file}.bam;
-#                fi
-#
- #               if ${DeDuplicates_Q20}; then
-  #                      if ${Q20}; then 
-   #                             Dedu_Q20 Q20.${file}.bam;
-    #                    else
-     #                           echo 'The Q20 filtered data must be generated first';
-      #                  fi
-       #         fi
-#
- #               if ${Drop_Duplicates}; then
-  #                      DeDup ${file}.bam;
-   #             fi
-#
- #               if ${Unique_mapping}; then
-  #                      unique_mapped ${file}.bam;
-   #             fi
+             	if ${Q20}; then
+                        Q20_filter ${file}.bam;
+                fi
+
+                if ${DeDuplicates_Q20}; then
+                        if ${Q20}; then 
+                                Dedu_Q20 Q20.${file}.bam;
+                        else
+                                echo 'The Q20 filtered data must be generated first';
+                        fi
+                fi
+
+                if ${Drop_Duplicates}; then
+                        DeDup ${file}.bam;
+                fi
+
+                if ${Unique_mapping}; then
+                        unique_mapped ${file}.bam;
+                fi
 
 	else
 		echo "Error when input samples name"
