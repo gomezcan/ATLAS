@@ -88,12 +88,12 @@ TMM <- function(Counts){
 
 ##################### DEFINE THE NORMALIZATIONFUNCTION ##############
 
-Normalization <- function(method, X){
-  if(method=='TMM'){
+Normalization <- function(met, X){
+  if(met=='TMM'){
     X_normed <- TMM(X)
   }
   
-  else if (method=='CTF'){
+  else if (met=='CTF'){
     X_normed <- CTF(X)
   }
   
