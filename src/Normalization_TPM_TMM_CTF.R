@@ -112,7 +112,7 @@ Normalization <- function(method, X){
 }
 ###################### EXECUTING ##########################
 
-Counts_normalized <- Normalization(new_counts)
+Counts_normalized <- Normalization(method, new_counts)
 
 
 maPlot(Counts_normalized[,1], Counts_normalized[,200],deCol = 'green') ## Plot mat plot with tmm normalization
