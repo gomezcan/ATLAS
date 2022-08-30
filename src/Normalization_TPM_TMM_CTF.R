@@ -17,7 +17,8 @@ Samples <- colnames(counts_stat)[-1]
 ######### Filtering Samples by count percents assigned ###################
 
 percents <- counts_stat[15,]
-caja <- boxplot(x=as.numeric(percents[1,-1])) # set a box plot to get the outliersQ1 <- caja$stat[1] ## First quantile 
+caja <- boxplot(x=as.numeric(percents[1,-1])) # set a box plot to get the outliers
+Q1 <- caja$stat[1] ## First quantile 
 std <- sd(x=percents[-1]) ## standard deviation
 mu <- mean(as.numeric(percents[-1])) # Mean
 
@@ -102,10 +103,10 @@ Normalization <- function(met, X){
     numCores <- detectCores()
     registerDoParallel(numCores)
     
-    l <- length(ncol(new_counts))
+    l <- length(ncol(X))
     
       X_normed <- foreach (i = 1:l, .combine = cbind) %dopar% {
-      TPM(colnames(new_counts)[i])
+      TPM(colnames(X)[i])
     }
   }
   return(X_normed)
