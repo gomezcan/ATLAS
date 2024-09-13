@@ -10,9 +10,9 @@
 ########## Load Modules #########
 
 module purge
-module load GNU/6.4.0-2.28  OpenMPI/2.1.2-CUDA 
-module load sra-toolkit
-module load parallel/20180422
+#module load GNU/6.4.0-2.28  OpenMPI/2.1.2-CUDA 
+module load  SRA-Toolkit/3.0.10-gompi-2023a
+module load parallel/20230722-GCCcore-12.3.0
 
 ###
 donwload_paired() {
